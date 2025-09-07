@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>T's Study Tracker</title>
+  <title>Study Tracker</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -92,7 +92,7 @@
 </head>
 <body>
   <div class="tracker">
-    <h1>Teresa's Study Tracker</h1>
+    <h1>Study Tracker</h1>
     <div class="controls">
       <select id="daySelect">
         <option value="" disabled selected>Select Day</option>
@@ -148,7 +148,18 @@
   <script>
     let totalHours = 0;
     let totalSections = 0;
-    const goalSections = 7.5; // adjust your weekly section goal
+    const goalSections = 7.5; // your weekly goal
+
+    // Load saved data on page load
+    window.onload = () => {
+      const savedData = JSON.parse(localStorage.getItem("studyData"));
+      if (savedData) {
+        totalHours = savedData.totalHours;
+        totalSections = savedData.totalSections;
+        document.getElementById("log").innerHTML = savedData.logHTML;
+        updateTotals();
+      }
+    };
 
     function logStudy() {
       const day = document.getElementById("daySelect").value;
@@ -170,6 +181,7 @@
       log.appendChild(entry);
 
       updateTotals();
+      saveData();
 
       // Reset selectors
       document.getElementById("daySelect").selectedIndex = 0;
@@ -190,10 +202,17 @@
       totalSections = 0;
       document.getElementById("log").innerHTML = "";
       updateTotals();
+      localStorage.removeItem("studyData");
     }
 
-    // initialize
-    updateTotals();
+    function saveData() {
+      const data = {
+        totalHours,
+        totalSections,
+        logHTML: document.getElementById("log").innerHTML
+      };
+      localStorage.setItem("studyData", JSON.stringify(data));
+    }
   </script>
 </body>
 </html>
