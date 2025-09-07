@@ -12,7 +12,7 @@ body {
   padding: 20px;
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start;
   min-height: 100vh;
 }
 .tracker {
@@ -21,7 +21,7 @@ body {
   border-radius: 12px;
   box-shadow: 0 4px 10px rgba(0,0,0,0.1);
   width: 90%;
-  max-width: 500px;
+  max-width: 600px;
 }
 h1 {
   text-align: center;
@@ -46,23 +46,18 @@ button {
   transition: background 0.3s;
 }
 button:hover { background: #45a049; }
-.log { margin-top: 20px; }
-.entry {
-  background: #f0f0f0;
-  padding: 10px;
-  margin: 5px 0;
-  border-radius: 6px;
-}
-.progress-container {
-  margin-top: 20px;
-}
-.progress { height: 20px; background: #ddd; border-radius: 10px; overflow: hidden; margin-top:5px; }
+.progress-container { margin-top: 15px; }
+.progress { height: 20px; background: #ddd; border-radius: 10px; overflow: hidden; margin-top:5px; position: relative;}
 .progress-bar { height: 100%; background: #4CAF50; width: 0%; transition: width 0.3s ease; }
-.totals { text-align: center; margin-top: 10px; font-weight: bold; }
-.reset { margin-top: 15px; display: flex; justify-content: center; }
+.totals { text-align: center; margin-top: 5px; font-weight: bold; }
+.forecast { text-align: center; margin-top: 10px; font-style: italic; color: #555; }
+.log-toggle { margin-top: 15px; display: flex; justify-content: center; }
+.log { display: none; margin-top: 10px; max-height: 300px; overflow-y: auto; border-top: 1px solid #ccc; padding-top: 10px; }
+.week-divider { font-weight: bold; margin-top: 10px; border-bottom: 1px dashed #ccc; padding-bottom: 3px; }
+.entry { background: #f0f0f0; padding: 8px; margin: 5px 0; border-radius: 6px; }
+.reset { margin-top: 10px; display: flex; gap: 10px; justify-content: center; }
 .reset button { background: #e53935; }
 .reset button:hover { background: #c62828; }
-.forecast { text-align: center; margin-top: 10px; font-style: italic; color: #555; }
 </style>
 </head>
 <body>
@@ -108,51 +103,41 @@ button:hover { background: #45a049; }
     <button onclick="logStudy()">Log</button>
   </div>
 
-  <div class="log" id="log"></div>
-
   <div class="progress-container">
     <div>Weekly Progress:</div>
     <div class="progress"><div class="progress-bar" id="weeklyProgressBar"></div></div>
-    <div class="totals" id="weeklyTotals">0 hours, 0 sections this week</div>
+    <div class="totals" id="weeklyTotals">0 hours, 0 sections / 7.5 this week</div>
   </div>
 
- <div class="progress-container">
-  <div>Overall Progress:</div>
-  <div class="progress" style="position: relative;">
-    <div class="progress-bar" id="overallProgressBar"></div>
-    <div id="milestoneMarker" style="
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        width: 2px;
-        background: blue;
-        left: 0%;
-        pointer-events: none;"></div>
+  <div class="progress-container">
+    <div>Overall Progress:</div>
+    <div class="progress"><div class="progress-bar" id="overallProgressBar"></div></div>
+    <div class="totals" id="overallTotals">0 hours, 0 sections / 45 total</div>
   </div>
-  <div class="totals" id="overallTotals">0 hours, 0 sections total</div>
-</div>
 
   <div class="forecast" id="forecast"></div>
 
   <div class="reset">
     <button onclick="resetWeek()">Reset Week</button>
+    <button onclick="toggleLogs()">Toggle Logs</button>
   </div>
+
+  <div class="log" id="log"></div>
 </div>
 
 <script>
-const weeklyGoal = 7.5;   // your weekly sections target
-const totalGoal = 45;      // total sections until milestone
+const weeklyGoal = 7.5;   // weekly sections
+const totalGoal = 45;      // milestone sections
+const totalWeeks = 10;
+const projectWeeks = 4;
+const studyWeeks = totalWeeks - projectWeeks; // 6 weeks
+const idealWeeklyPace = totalGoal / studyWeeks; // 7.5
 
 let weeklyHours = 0;
 let weeklySections = 0;
 let overallHours = 0;
 let overallSections = 0;
-
-// Ideal weekly pace to reach milestone in remaining weeks
-const totalWeeks = 10; // total weeks until milestone
-const projectWeeks = 4; // weeks reserved for milestone project
-const studyWeeks = totalWeeks - projectWeeks; // 6 weeks of study
-const idealWeeklyPace = totalGoal / studyWeeks; // 45 / 6 = 7.5 sections/week
+let weeklyLog = [];
 
 // Load saved data
 window.onload = () => {
@@ -162,7 +147,8 @@ window.onload = () => {
     weeklySections = saved.weeklySections;
     overallHours = saved.overallHours;
     overallSections = saved.overallSections;
-    document.getElementById("log").innerHTML = saved.logHTML;
+    weeklyLog = saved.weeklyLog || [];
+    renderLog();
     updateDisplay();
   }
 };
@@ -182,12 +168,9 @@ function logStudy(){
   overallHours += hours;
   overallSections += sections;
 
-  const log = document.getElementById("log");
-  const entry = document.createElement("div");
-  entry.classList.add("entry");
-  entry.textContent = `${day}: ${hours} hours, ${sections} sections`;
-  log.appendChild(entry);
+  weeklyLog.push({day,hours,sections,week:getCurrentWeek()});
 
+  renderLog();
   updateDisplay();
   saveData();
 
@@ -196,67 +179,73 @@ function logStudy(){
   document.getElementById("sectionsSelect").selectedIndex = 0;
 }
 
+function renderLog(){
+  const logDiv = document.getElementById("log");
+  logDiv.innerHTML = '';
+
+  const currentWeek = getCurrentWeek();
+
+  // Current week
+  const currentWeekHeader = document.createElement('div');
+  currentWeekHeader.classList.add('week-divider');
+  currentWeekHeader.textContent = 'Current Week';
+  logDiv.appendChild(currentWeekHeader);
+
+  weeklyLog.filter(e=>e.week===currentWeek).forEach(e=>{
+    const entry = document.createElement('div');
+    entry.classList.add('entry');
+    entry.textContent = `${e.day}: ${e.hours} hours, ${e.sections} sections`;
+    logDiv.appendChild(entry);
+  });
+
+  // Previous weeks
+  const prevEntries = weeklyLog.filter(e=>e.week<currentWeek);
+  if(prevEntries.length){
+    const prevHeader = document.createElement('div');
+    prevHeader.classList.add('week-divider');
+    prevHeader.textContent = 'Previous Weeks';
+    logDiv.appendChild(prevHeader);
+    prevEntries.forEach(e=>{
+      const entry = document.createElement('div');
+      entry.classList.add('entry');
+      entry.textContent = `${e.day}: ${e.hours} hours, ${e.sections} sections`;
+      logDiv.appendChild(entry);
+    });
+  }
+}
+
+function getCurrentWeek(){
+  const today = new Date();
+  const startDate = new Date(); // adjust to actual course start date if desired
+  const diffTime = today - startDate;
+  return Math.floor(diffTime / (7*24*60*60*1000)) + 1; // week 1-based
+}
+
+function toggleLogs(){
+  const logDiv = document.getElementById("log");
+  logDiv.style.display = (logDiv.style.display==='none')?'block':'none';
+}
+
 function updateDisplay(){
-  // Weekly
   document.getElementById("weeklyTotals").textContent = `${weeklyHours} hours, ${weeklySections} sections this week`;
   document.getElementById("weeklyProgressBar").style.width = Math.min((weeklySections/weeklyGoal)*100,100) + "%";
 
-  // Overall
   document.getElementById("overallTotals").textContent = `${overallHours} hours, ${overallSections} sections total`;
   document.getElementById("overallProgressBar").style.width = Math.min((overallSections/totalGoal)*100,100) + "%";
 
-  // Forecast calculation
-  const weeksElapsed = Math.ceil(overallSections / idealWeeklyPace);
+  // Forecast
+  const weeksElapsed = Math.ceil(overallSections/idealWeeklyPace);
   const remainingSections = totalGoal - overallSections;
-  const avgPerWeek = weeksElapsed ? overallSections / weeksElapsed : idealWeeklyPace;
-  const weeksLeft = remainingSections / avgPerWeek;
+  const avgPerWeek = weeksElapsed? overallSections/weeksElapsed : idealWeeklyPace;
+  const weeksLeft = remainingSections/avgPerWeek;
   const forecastDate = new Date();
   forecastDate.setDate(forecastDate.getDate() + Math.ceil(weeksLeft*7));
 
-  // Determine status
-  let status = '';
-  if(avgPerWeek > idealWeeklyPace) status = 'ahead';
-  else if(avgPerWeek === idealWeeklyPace) status = 'on track';
-  else status = 'behind';
+  // Status
+  let status='';
+  if(avgPerWeek>idealWeeklyPace) status='ahead';
+  else if(avgPerWeek===idealWeeklyPace) status='on track';
+  else status='behind';
 
-  // Color-coded forecast
   const forecastElement = document.getElementById("forecast");
-  forecastElement.textContent = `Forecast: You will reach your milestone around ${forecastDate.toDateString()} (${status})`;
-  if(status === 'ahead') forecastElement.style.color = 'green';
-  else if(status === 'on track') forecastElement.style.color = 'orange';
-  else forecastElement.style.color = 'red';
-
-// Calculate milestone marker position
-const currentDate = new Date();
-const startDate = new Date(); // set this to the actual course start date
-const elapsedWeeks = Math.floor((currentDate - startDate) / (7*24*60*60*1000));
-const idealSections = Math.min((elapsedWeeks / studyWeeks) * totalGoal, totalGoal);
-
-// Update marker position (percentage)
-const markerPercent = (idealSections / totalGoal) * 100;
-document.getElementById("milestoneMarker").style.left = markerPercent + "%";
-
-
-}
-
-function resetWeek(){
-  weeklyHours = 0;
-  weeklySections = 0;
-  document.getElementById("log").innerHTML = "";
-  updateDisplay();
-  saveData();
-}
-
-function saveData(){
-  const data = {
-    weeklyHours,
-    weeklySections,
-    overallHours,
-    overallSections,
-    logHTML: document.getElementById("log").innerHTML
-  };
-  localStorage.setItem("studyData", JSON.stringify(data));
-}
-</script>
-</body>
-</html>
+  forecastElement.textContent = `Forecast: You will reach your milestone around ${forecastDate.toDateString()} (${status
