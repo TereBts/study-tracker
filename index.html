@@ -102,7 +102,7 @@ button:hover { background: #45a049; }
       <option value="3.5">3.5</option>
       <option value="4">4</option>
       <option value="4.5">4.5</option>
-      <option value="5">5</option>
+      <option value ="5">5</option>
     </select>
 
     <button onclick="logStudy()">Log</button>
@@ -198,11 +198,11 @@ function logStudy(){
 
 function updateDisplay(){
   // Weekly
-  document.getElementById("weeklyTotals").textContent = `${weeklyHours} hours, ${weeklySections} sections this week`;
+  document.getElementById("weeklyTotals").textContent = `${weeklyHours} hours, ${weeklySections} 7.5 sections this week`;
   document.getElementById("weeklyProgressBar").style.width = Math.min((weeklySections/weeklyGoal)*100,100) + "%";
 
   // Overall
-  document.getElementById("overallTotals").textContent = `${overallHours} hours, ${overallSections} sections total`;
+  document.getElementById("overallTotals").textContent = `${overallHours} hours, ${overallSections} / 45 sections total`;
   document.getElementById("overallProgressBar").style.width = Math.min((overallSections/totalGoal)*100,100) + "%";
 
   // Forecast calculation
