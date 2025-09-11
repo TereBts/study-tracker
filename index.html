@@ -198,7 +198,7 @@ function logStudy(){
 
 function updateDisplay(){
   // Weekly
-  document.getElementById("weeklyTotals").textContent = `${weeklyHours} hours, ${weeklySections} 7.5 sections this week`;
+  document.getElementById("weeklyTotals").textContent = `${weeklyHours} hours, ${weeklySections} / 7.5 sections this week`;
   document.getElementById("weeklyProgressBar").style.width = Math.min((weeklySections/weeklyGoal)*100,100) + "%";
 
   // Overall
